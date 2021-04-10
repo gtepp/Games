@@ -80,12 +80,14 @@ def movetoken(onP,minfo):
             if sttok == 'y': 
                 tokeninfo[onP][mvtok][1] = i
                 tokeninfo[onP][i][1] = mvtok
-                print('Tokens ',mvtok,' and ',i,' are now stacked.')
+                print('Tokens ',mvtok+1,' and ',i+1,' are now stacked.')
             
             break
         
         # if other player has token on space
-        elif newsp != 50 and tokeninfo[onP-1][i][0] == newsp: 
+        elif newsp != 50 and (tokeninfo[onP-1][i][0] == newsp or \
+                              (tokeninfo[onP-1][i][0] == 1 and newsp == 21) or \
+                                  (tokeninfo[onP-1][i][0] == 21 and newsp == 1)): 
             print('\nOh no! There\'s already a token here. Clear it off the board.')
             
             # first check to see if it's stacked
@@ -152,54 +154,57 @@ def showboard(tokcol):
     
     return
 
-def computermove():
+def computermove(complvl,moves):
     # make decisions about which token to move
-    goodT = 0
-    for i in range(0,4):
-        if tokeninfo[1][i][0] != 50: # if token isn't finished
-            
-            # try to knock off user's tokens
-            for j in range(0,4):
-                if tokeninfo[1][i][0]+playerinfo[onP][0] == tokeninfo[0][j][0]:
-                    playerinfo[onP][1] = i
-                    goodT=1
-                    break
-            
-            if goodT == 1: # stop loop if good token already found
-                break
+    mvtok = -1         
+
+    if complvl == 3: # for hard level only
+        for i in range(0,4):
+            if tokeninfo[1][i][0] != 50: # if token isn't finished
+                # try to knock off user's tokens
+                for j in range(0,4):
+                    if tokeninfo[1][i][0]+moves == tokeninfo[0][j][0]:
+                        mvtok = i
+                        break
                 
-            # finish if possible        
-            elif tokeninfo[1][i][0]+playerinfo[onP][0] > 21 or tokeninfo[1][i][0]+playerinfo[onP][0] > 31:
-                playerinfo[onP][1] = i
-                goodT=1
                 break
-            
-            # go to corner/center/end
-            elif tokeninfo[1][i][0]+playerinfo[onP][0] in [6,11,21,28,31]:
-                playerinfo[onP][1] = i
-                goodT=1
+        
+    # finish if possible 
+    for i in range(0,4):  
+        if mvtok == -1 and tokeninfo[1][i][0] != 50: # if token isn't finished
+            if tokeninfo[1][i][0]+moves > 21 or tokeninfo[1][i][0]+moves > 31:
+                mvtok = i
+                break
+    
+    # go to corner/center/end
+    for i in range(0,4):
+        if mvtok == -1 and tokeninfo[1][i][0] != 50: # if token isn't finished
+            if complvl == 3 and tokeninfo[1][i][0]+moves in [6,11,21,28,31]:
+                mvtok = i
                 break
 
-            # move stacked tokens
-            elif tokeninfo[1][i][1] in [0,1,2,3]:
-                playerinfo[onP][1] = i
-                goodT=1
+    # move stacked tokens
+    for i in range(0,4):
+        if complvl == 2 and mvtok == -1 and tokeninfo[1][i][0] != 50: # if token isn't finished
+            if tokeninfo[1][i][1] in [0,1,2,3]:
+                mvtok = i
                 break
-            
-            # move token if on a corner or center
-            elif tokeninfo[1][i][0] in [6,11,28]:
-                playerinfo[onP][1] = i
-                goodT=1
-                break
-            
-    # randomly choose which token to move if no good choices
-    while goodT == 0:
-        playerinfo[onP][1] = random.randint(0,3)
-        # make sure random token is not finished
-        if tokeninfo[1][playerinfo[onP][1]][0] != 50:
-            goodT = 1
     
-    return
+    # move token if on a corner or center
+    for i in range(0,4):
+        if mvtok == -1 and tokeninfo[1][i][0] != 50: # if token isn't finished
+            if tokeninfo[1][i][0] in [6,11,28]:
+                mvtok = i
+                break
+    
+    # randomly choose which token to move if no good choices
+    while mvtok == -1:
+        mvtok = random.randint(0,3)
+        # check if random token is finished
+        if tokeninfo[1][mvtok][0] == 50:
+            mvtok = -1
+    
+    return mvtok
     
 # function to check for winner
 
@@ -315,7 +320,7 @@ while haswon() == False:
          
         # set up computer moves
         if complvl == 3:
-           computermove()
+           playerinfo[onP][1] = computermove(complvl,playerinfo[onP][0])
             
         elif complvl == 1:
             # always move same token until finished, going in sequential order 
@@ -325,13 +330,7 @@ while haswon() == False:
                     break
                         
         else:         
-            # randomly choose which token to move
-            goodT = 0
-            while goodT == 0:
-                playerinfo[onP][1] = random.randint(0,3)
-                # make sure random token is not finished
-                if tokeninfo[1][playerinfo[onP][1]][0] != 50:
-                    goodT = 1
+           playerinfo[onP][1] = computermove(complvl,playerinfo[onP][0]) 
         
     movetoken(onP,playerinfo)
     
